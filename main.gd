@@ -28,7 +28,7 @@ func build_interface():
 		Control.PRESET_FULL_RECT
 	)
 	add_child(background)
-
+	
 	var scroll = ScrollContainer.new()
 	scroll.set_anchors_and_offsets_preset(
 		Control.PRESET_FULL_RECT
