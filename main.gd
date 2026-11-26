@@ -13,17 +13,60 @@ var graph: Control
 var simulation_time := 80
 var thermal_time_constant := 7.0
 var stabilization_label: Label
+var material_panel: VBoxContainer
+var material_button: Button
+var material_container: VBoxContainer
+var material_buttons: VBoxContainer
+
+var materials = {
+	"Alumínio": {
+		"value": 23e-6,
+		"description": "Alta dilatação térmica."
+	},
+	"Cobre": {
+		"value": 17e-6,
+		"description": "Dilatação intermediária."
+	},
+	"Aço": {
+		"value": 12e-6,
+		"description": "Baixa dilatação térmica."
+	},
+	"Ferro": {
+		"value": 12e-6,
+		"description": "Coeficiente aproximado."
+	},
+	"Vidro comum": {
+		"value": 9e-6,
+		"description": "Baixa dilatação térmica."
+	},
+	"Concreto": {
+		"value": 10e-6,
+		"description": "Coeficiente aproximado."
+	},
+	"Latão": {
+		"value": 19e-6,
+		"description": "Liga de cobre e zinco."
+	},
+	"Aço inoxidável": {
+	"value": 17e-6,
+	"description": "Valor aproximado para aço inoxidável."
+},
+	"Invar": {
+		"value": 1.2e-6,
+		"description": "Baixíssima dilatação térmica."
+	}
+}
 
 func _ready():
 	build_interface()
-
+	apply_theme()
 
 # Interface
 
 func build_interface():
 
 	var background = ColorRect.new()
-	background.color = Color("803f8eff")
+	background.color = Color("2f2644ff")
 	background.set_anchors_and_offsets_preset(
 		Control.PRESET_FULL_RECT
 	)
@@ -34,6 +77,7 @@ func build_interface():
 		Control.PRESET_FULL_RECT
 	)
 	add_child(scroll)
+	
 
 	var layout = VBoxContainer.new()
 	layout.add_theme_constant_override("separation", 14)
@@ -98,6 +142,7 @@ func build_interface():
 		"property",
 		0.5
 	)
+	build_material_panel(layout)
 
 	# Botão de simulação
 
@@ -208,6 +253,11 @@ func _on_mode_changed(index: int):
 		+ "Tolerância: ±0.5 °C"
 	)
 
+	material_panel.visible = (index == 3)
+
+	material_container.visible = false
+
+	material_button.text = "▼ Biblioteca de Materiais"
 	# Limpar memória de cálculo
 	calculation_label.clear()
 
@@ -563,3 +613,166 @@ func show_calculations(
 	text += "%.2f segundos\n" % stabilization_time
 
 	calculation_label.text = text
+
+
+func apply_theme():
+
+	var theme = Theme.new()
+
+	# CORES
+	var background = Color("#0B0B12")
+	var panel = Color("#151522")
+	var purple = Color("#762BCE")
+	var accent = Color("#A855F7")
+	var text_color = Color("#E9E7F2")
+	var muted = Color("#A5A1B5")
+
+	# LABELS
+	theme.set_color("font_color", "Label", text_color)
+	theme.set_color("font_color", "RichTextLabel", text_color)
+
+	# BOTÕES
+	var button_normal = StyleBoxFlat.new()
+	button_normal.bg_color = purple
+	button_normal.set_corner_radius_all(8)
+	button_normal.content_margin_left = 12
+	button_normal.content_margin_right = 12
+	button_normal.content_margin_top = 10
+	button_normal.content_margin_bottom = 10
+
+	var button_hover = button_normal.duplicate()
+	button_hover.bg_color = accent
+
+	var button_pressed = button_normal.duplicate()
+	button_pressed.bg_color = Color("#54209A")
+
+	theme.set_stylebox("normal", "Button", button_normal)
+	theme.set_stylebox("hover", "Button", button_hover)
+	theme.set_stylebox("pressed", "Button", button_pressed)
+
+	theme.set_color("font_color", "Button", Color.WHITE)
+
+	# CAMPOS DE ENTRADA
+	var input_style = StyleBoxFlat.new()
+	input_style.bg_color = panel
+	input_style.border_color = purple
+	input_style.set_border_width_all(1)
+	input_style.set_corner_radius_all(6)
+
+	theme.set_stylebox("normal", "SpinBox", input_style)
+	theme.set_stylebox("focus", "SpinBox", input_style)
+
+	# MENU DE SELEÇÃO
+	theme.set_color("font_color", "OptionButton", text_color)
+
+	# APLICAR TEMA
+	self.theme = theme
+
+
+func build_material_panel(parent: VBoxContainer):
+	material_panel = VBoxContainer.new()
+
+	material_panel.add_theme_constant_override(
+		"separation", 8
+	)
+
+	parent.add_child(material_panel)
+
+	# Botão para abrir e fechar
+
+	material_button = Button.new()
+
+	material_button.text = "▼ Biblioteca de Materiais"
+
+	material_button.custom_minimum_size.y = 40
+
+	material_panel.add_child(material_button)
+
+	# Container dos materiais
+
+	material_container = VBoxContainer.new()
+
+	material_container.add_theme_constant_override(
+		"separation", 6
+	)
+
+	material_panel.add_child(material_container)
+
+	var title = Label.new()
+
+	title.text = "Selecione um material:"
+
+	material_container.add_child(title)
+
+	# Botões dos materiais
+
+	material_buttons = VBoxContainer.new()
+
+	material_buttons.add_theme_constant_override(
+		"separation", 5
+	)
+
+	material_container.add_child(material_buttons)
+
+	for material_name in materials.keys():
+
+		var button = Button.new()
+
+		button.text = material_name
+
+		button.custom_minimum_size.y = 38
+
+		material_buttons.add_child(button)
+
+		button.pressed.connect(
+			func():
+				select_material(material_name)
+		)
+
+	# Estado inicial
+
+	material_container.visible = false
+
+	material_button.pressed.connect(
+		toggle_material_panel
+	)
+
+	# Painel só aparece na dilatação
+
+	material_panel.visible = false
+
+
+func select_material(material_name: String):
+
+	var material = materials[material_name]
+
+	# Atualizar o campo de propriedade física
+
+	fields["property"].value = material.value
+
+	# Atualizar o resultado informativo
+
+	result_label.text = (
+		"Material selecionado: %s\n" % material_name
+		+ "Coeficiente de dilatação: %.8f °C⁻¹\n" % material.value
+		+ material.description
+		+ "\nExecute uma nova simulação."
+	)
+
+	# Fechar painel após seleção
+
+	material_container.visible = false
+
+	material_button.text = "▼ Biblioteca de Materiais"
+
+func toggle_material_panel():
+
+	material_container.visible = !material_container.visible
+
+	if material_container.visible:
+
+		material_button.text = "▲ Fechar Biblioteca"
+
+	else:
+
+		material_button.text = "▼ Biblioteca de Materiais"
